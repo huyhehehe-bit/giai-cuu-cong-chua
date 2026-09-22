@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giải Cứu Công Chúa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <h1 class="logo">SUPER HERO <span>· Giải Cứu Công Chúa</span></h1>
+
+  <div class="stage" id="stage">
+    <canvas id="game" width="960" height="544" tabindex="0" aria-label="Màn chơi"></canvas>
+
+    <!-- ===== Màn hình nhập thông tin ===== -->
+    <section class="screen" id="startScreen">
+      <div class="panel two-col">
+        <div>
+          <h2>Giải Cứu Công Chúa</h2>
+          <p class="sub">Nhập thông tin sinh viên để bắt đầu</p>
+          <form id="startForm" novalidate>
+            <label>Họ và tên
+              <input id="nameInput" maxlength="40" autocomplete="name" placeholder="VD: Nguyễn Văn A">
+            </label>
+            <label>Mã số sinh viên
+              <input id="idInput" maxlength="15" autocomplete="off" placeholder="VD: 21520001">
+            </label>
+            <p class="error" id="formError" role="alert"></p>
+            <button type="submit" class="btn primary">BẮT ĐẦU ▶</button>
+          </form>
+        </div>
+        <div>
+          <div class="controls">
+            <h3>Luật chơi</h3>
+            <p><kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd> di chuyển · <kbd>Space</kbd> nhảy</p>
+            <ul class="rules">
+              <li>🪙 Mỗi đồng xu = <b>10 điểm</b></li>
+              <li>❓ Đập ô <b>?</b> → trả lời đúng rơi ra <b>5 xu</b></li>
+              <li>💀 Mỗi lần chết bị <b>trừ nửa điểm</b></li>
+              <li>⏱ Giới hạn <b>10 phút</b> — đồng hồ vẫn chạy khi trả lời</li>
+              <li>👑 Đến lâu đài cứu công chúa để kết thúc sớm</li>
+            </ul>
+          </div>
+          <div class="board">
+            <div class="board-head">
+              <h3>🏆 Bảng xếp hạng</h3>
+              <span class="board-meta" id="lbMetaStart"></span>
+            </div>
+            <ol id="lbStart"></ol>
+          </div>
+          <button type="button" class="link-btn" id="btnReset">🗑 Xoá bảng xếp hạng (quản trị)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Hộp câu hỏi ===== -->
+    <section class="screen hidden" id="quizScreen">
+      <div class="panel quiz">
+        <div class="quiz-head">
+          <span>❓ CÂU HỎI</span>
+          <span id="quizTime"></span>
+        </div>
+        <p class="qtext" id="quizText"></p>
+        <div class="opts" id="quizOpts"></div>
+        <p class="quiz-note" id="quizNote">Trả lời đúng: +5 xu (50 điểm). Bấm phím 1–4 hoặc nhấp chuột.</p>
+      </div>
+    </section>
+
+    <!-- ===== Màn hình kết thúc ===== -->
+    <section class="screen hidden" id="endScreen">
+      <div class="panel two-col">
+        <div>
+          <h2 id="endTitle"></h2>
+          <p class="sub" id="endMsg"></p>
+          <dl class="stats" id="endStats"></dl>
+          <p class="submit-status" id="submitStatus"></p>
+          <div class="row">
+            <button class="btn primary" id="btnRetry">CHƠI LẠI</button>
+            <button class="btn" id="btnChange">ĐỔI NGƯỜI CHƠI</button>
+          </div>
+        </div>
+        <div class="board">
+          <div class="board-head">
+            <h3>🏆 Bảng xếp hạng</h3>
+            <span class="board-meta" id="lbMetaEnd"></span>
+          </div>
+          <ol id="lbEnd"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Nút cảm ứng (điện thoại) ===== -->
+    <div class="touch" id="touch" aria-hidden="true">
+      <div>
+        <button data-key="left">◀</button>
+        <button data-key="right">▶</button>
+      </div>
+      <button data-key="jump" class="jump">▲</button>
+    </div>
+  </div>
+
+  <p class="help">Di chuyển: <kbd>A</kbd>/<kbd>D</kbd> hoặc <kbd>←</kbd>/<kbd>→</kbd> · Nhảy: <kbd>Space</kbd> · Tạm dừng: <kbd>P</kbd></p>
+</main>
+
+<!-- ===== Hộp xoá bảng xếp hạng ===== -->
+<dialog id="resetDialog">
+  <form method="dialog" id="resetForm" class="panel">
+    <h2>Xoá bảng xếp hạng</h2>
+    <p class="sub">Toàn bộ điểm hiện tại sẽ bị xoá và bắt đầu một vòng chơi mới. Không thể hoàn tác.</p>
+    <label>Mật khẩu quản trị
+      <input type="password" id="resetKey" autocomplete="current-password" required>
+    </label>
+    <p class="error" id="resetError" role="alert"></p>
+    <div class="row">
+      <button type="submit" class="btn danger" id="resetConfirm">XOÁ &amp; BẮT ĐẦU VÒNG MỚI</button>
+      <button type="button" class="btn" id="resetCancel">HUỶ</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="questions.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

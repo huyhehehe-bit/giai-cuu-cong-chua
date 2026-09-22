@@ -1,0 +1,503 @@
+<title>Giải Cứu Công Chúa Chân Lý</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Be+Vietnam+Pro:wght@400;600;700;800&display=swap">
+<style>
+:root{
+  --sky1:#5c94fc; --sky2:#8fc0ff; --ground:#c84c0c; --ground2:#8a3208;
+  --brick:#d07b28; --qblock:#f7b32b; --qblock2:#e08a00; --coin:#ffd93b;
+  --pipe:#00a844; --pipe2:#007a30; --ink:#1a1030; --panel:#241540;
+  --panel2:#2f1a55; --white:#fff8f0; --red:#e52521; --green:#3ad35a;
+  --wrong:#ff4d4d; --gold:#ffd93b; --line:#0d0820; --muted:#b8a9e0;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--ink);
+  font-family:"Be Vietnam Pro",system-ui,sans-serif; color:var(--white);
+  -webkit-font-smoothing:antialiased;
+}
+.pixel{font-family:"Press Start 2P",monospace;}
+.wrap{max-width:940px;margin:0 auto;padding-block:14px;padding-left:16px;padding-right:16px;}
+button{font-family:inherit;cursor:pointer;border:none}
+.hidden{display:none!important}
+
+/* ---------- shared retro panel ---------- */
+.panel{
+  background:var(--panel); border:4px solid var(--line);
+  border-radius:6px; box-shadow:0 6px 0 var(--line),0 10px 24px rgba(0,0,0,.5);
+}
+.btn{
+  font-family:"Press Start 2P",monospace; font-size:13px; letter-spacing:1px;
+  color:#2a1600; background:var(--qblock); padding:16px 22px; border-radius:6px;
+  border:3px solid var(--line); box-shadow:0 5px 0 var(--qblock2),0 6px 10px rgba(0,0,0,.4);
+  transition:transform .08s, box-shadow .08s;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--qblock2)}
+.btn.red{background:var(--red);color:#fff;box-shadow:0 5px 0 #9c1414,0 6px 10px rgba(0,0,0,.4)}
+.btn.green{background:var(--green);color:#08240f;box-shadow:0 5px 0 #1c8f36,0 6px 10px rgba(0,0,0,.4)}
+
+/* ---------- START ---------- */
+#start{text-align:center}
+.logo{
+  font-family:"Press Start 2P",monospace; line-height:1.5; margin:10px 0 4px;
+  color:var(--gold); text-shadow:3px 3px 0 var(--red),6px 6px 0 var(--line);
+  font-size:clamp(15px,4.6vw,30px);
+}
+.subtitle{font-weight:700;font-size:15px;color:var(--muted);margin:0 0 6px}
+.tag{font-size:13px;color:var(--muted);max-width:520px;margin:0 auto 16px;line-height:1.55}
+.namebox{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:8px 0 18px}
+#nameInput{
+  font-family:"Be Vietnam Pro",sans-serif;font-weight:700;font-size:16px;
+  padding:14px 16px;border-radius:6px;border:3px solid var(--line);
+  background:#fff;color:#1a1030;width:min(300px,80vw);text-align:center;
+}
+#nameInput:focus{outline:3px solid var(--gold);outline-offset:1px}
+.rules{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;
+  margin:20px 0;text-align:left;
+}
+.rule{padding:14px;font-size:13px;line-height:1.5}
+.rule b{color:var(--gold);display:block;font-size:12px;margin-bottom:5px;font-family:"Press Start 2P",monospace}
+
+/* mario mini strip on start */
+.hero-demo{display:flex;justify-content:center;gap:0;align-items:flex-end;margin:6px 0 2px;height:70px}
+
+/* ---------- HUD ---------- */
+#hud{
+  display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;
+  font-family:"Press Start 2P",monospace;font-size:11px;color:var(--white);
+  padding:12px 14px;margin-bottom:10px;
+}
+#hud .stat{display:flex;flex-direction:column;gap:5px;line-height:1}
+#hud .stat small{color:var(--muted);font-size:9px}
+#hud .stat b{font-size:14px;color:var(--gold)}
+.timebar{height:12px;background:#160c28;border:2px solid var(--line);border-radius:4px;overflow:hidden;min-width:90px}
+.timebar>i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--gold));transition:width .25s linear}
+
+/* ---------- SCENE ---------- */
+.scene{
+  position:relative;height:180px;border-radius:6px;overflow:hidden;
+  border:4px solid var(--line);
+  background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 62%,#bfe0a8 62%,#9fd07f 100%);
+  margin-bottom:12px;
+}
+.cloud{position:absolute;background:#fff;border-radius:20px;opacity:.9;filter:drop-shadow(0 0 0 #dff)}
+.track{
+  position:absolute;left:0;bottom:0;height:100%;display:flex;align-items:flex-end;
+  gap:22px;padding:0 20px 26px;transition:transform .45s cubic-bezier(.3,1.2,.5,1);
+}
+.groundstrip{position:absolute;left:0;right:0;bottom:0;height:26px;
+  background:repeating-linear-gradient(90deg,var(--ground) 0 24px,var(--ground2) 24px 26px);
+  border-top:3px solid #5c1e04;z-index:1}
+.qb{
+  position:relative;width:40px;height:40px;flex:0 0 auto;border-radius:5px;z-index:2;
+  background:var(--qblock);border:3px solid var(--line);
+  box-shadow:inset 0 -6px 0 var(--qblock2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:"Press Start 2P",monospace;font-size:16px;color:#7a4a00;
+}
+.qb.done{background:#9a6b2e;box-shadow:inset 0 -6px 0 #6e4a1c;color:#4a3010}
+.qb.miss{background:#7a3030;box-shadow:inset 0 -6px 0 #521f1f;color:#ffcaca}
+.qb .float{position:absolute;top:-16px;font-family:"Press Start 2P";font-size:10px;opacity:0;
+  transition:.5s;color:var(--gold);text-shadow:1px 1px 0 var(--line)}
+.qb.pop .float{opacity:1;top:-30px}
+.qb.pop.miss .float{color:#ff9a9a}
+.flag{position:relative;width:14px;height:120px;background:#2f8f2f;flex:0 0 auto;align-self:flex-end;z-index:2;border:2px solid var(--line)}
+.flag:before{content:"";position:absolute;top:6px;left:12px;width:26px;height:18px;background:var(--red);clip-path:polygon(0 0,100% 50%,0 100%)}
+.castle{flex:0 0 auto;width:66px;height:74px;align-self:flex-end;z-index:2;position:relative;
+  background:var(--brick);border:3px solid var(--line);border-radius:3px}
+.castle:before{content:"";position:absolute;top:-16px;left:8px;right:8px;height:16px;background:var(--brick);border:3px solid var(--line);
+  clip-path:polygon(0 100%,0 40%,15% 40%,15% 0,30% 0,30% 40%,45% 40%,45% 0,60% 0,60% 40%,75% 40%,75% 0,90% 0,90% 40%,100% 40%,100% 100%)}
+.castle .door{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:22px;height:30px;background:var(--line);border-radius:11px 11px 0 0}
+.princess{position:absolute;bottom:26px;font-size:30px;z-index:3;transition:left .5s, opacity .4s;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.3))}
+
+/* CSS mario */
+.mario{position:absolute;bottom:26px;width:26px;height:34px;z-index:5;transition:left .45s cubic-bezier(.3,1.3,.5,1), bottom .18s;image-rendering:pixelated}
+.mario .cap{position:absolute;top:0;left:3px;width:20px;height:8px;background:var(--red);border:2px solid var(--line);border-bottom:none;border-radius:5px 5px 0 0}
+.mario .brim{position:absolute;top:6px;left:1px;width:24px;height:4px;background:var(--red);border:2px solid var(--line)}
+.mario .face{position:absolute;top:10px;left:5px;width:16px;height:9px;background:#ffd9a8;border:2px solid var(--line)}
+.mario .face:before,.mario .face:after{content:"";position:absolute;top:2px;width:2px;height:3px;background:var(--line)}
+.mario .face:before{left:3px}.mario .face:after{left:9px}
+.mario .body{position:absolute;top:18px;left:4px;width:18px;height:13px;background:#2b6fff;border:2px solid var(--line);border-radius:3px}
+.mario .body:before{content:"";position:absolute;top:-1px;left:5px;width:6px;height:6px;background:var(--gold);border:1px solid var(--line);border-radius:50%}
+.mario.jump{animation:hop .45s}
+@keyframes hop{0%{bottom:26px}45%{bottom:64px}100%{bottom:26px}}
+
+/* ---------- QUESTION ---------- */
+#qcard{padding:16px 16px 18px}
+.qmeta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;
+  font-family:"Press Start 2P";font-size:10px;color:var(--muted)}
+.qmeta .streak{color:var(--red)}
+.qtext{font-size:clamp(16px,2.4vw,19px);font-weight:700;line-height:1.5;margin:2px 0 14px;text-wrap:balance}
+.opts{display:grid;gap:10px}
+.opt{
+  text-align:left;font-family:"Be Vietnam Pro";font-weight:600;font-size:15px;line-height:1.4;
+  background:var(--panel2);color:var(--white);padding:13px 14px;border-radius:6px;
+  border:3px solid var(--line);box-shadow:0 4px 0 var(--line);display:flex;gap:11px;align-items:flex-start;
+  transition:transform .06s;
+}
+.opt:hover{transform:translateX(3px)}
+.opt .key{font-family:"Press Start 2P";font-size:12px;color:var(--gold);flex:0 0 auto;margin-top:2px}
+.opt.correct{background:var(--green);color:#08240f;border-color:#0f5a22;box-shadow:0 4px 0 #0f5a22}
+.opt.correct .key{color:#08240f}
+.opt.wrong{background:var(--wrong);color:#fff;box-shadow:0 4px 0 #8f1f1f}
+.opt.wrong .key{color:#fff}
+.opt:disabled{cursor:default}
+.opt.dim{opacity:.5}
+
+/* ---------- END ---------- */
+#end{text-align:center}
+.result-score{font-family:"Press Start 2P";font-size:clamp(26px,7vw,46px);color:var(--gold);
+  text-shadow:3px 3px 0 var(--red),6px 6px 0 var(--line);margin:6px 0}
+.bd{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:16px 0}
+.bd .cell{padding:12px}
+.bd .cell small{display:block;font-family:"Press Start 2P";font-size:9px;color:var(--muted);margin-bottom:6px}
+.bd .cell b{font-size:20px;color:var(--white)}
+.bonus{font-weight:700;font-size:15px;color:var(--gold);background:var(--panel2);border:3px solid var(--line);
+  border-radius:6px;padding:12px;margin:6px 0 14px;line-height:1.5}
+
+/* ---------- LEADERBOARD ---------- */
+.lb{padding:14px 14px 16px;margin-top:14px}
+.lb h3{font-family:"Press Start 2P";font-size:13px;color:var(--gold);margin:2px 0 12px;text-align:center}
+.lb-row{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;
+  padding:9px 10px;border-bottom:2px solid var(--line);font-weight:700}
+.lb-row:last-child{border-bottom:none}
+.lb-row .rk{font-family:"Press Start 2P";font-size:12px;color:var(--muted);text-align:center}
+.lb-row.me{background:var(--panel2);border-radius:6px}
+.lb-row.top1 .rk{color:var(--gold)}.lb-row.top2 .rk{color:#cfd4dc}.lb-row.top3 .rk{color:#e08a4a}
+.lb-row .sc{font-family:"Press Start 2P";font-size:12px;color:var(--gold)}
+.lb-note{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.5}
+.foot{text-align:center;font-size:12px;color:var(--muted);margin:18px 0 4px;line-height:1.6}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ START ============ -->
+  <section id="start">
+    <div class="hero-demo" aria-hidden="true">
+      <div class="qb" style="position:static">?</div>
+      <div style="width:26px;height:34px;position:relative" class="mario">
+        <div class="cap"></div><div class="brim"></div><div class="face"></div><div class="body"></div>
+      </div>
+      <div style="font-size:26px;align-self:center">👑</div>
+    </div>
+    <h1 class="logo">GIẢI CỨU<br>CÔNG CHÚA CHÂN LÝ</h1>
+    <p class="subtitle">Quiz Triết học Mác – Lênin · Lý luận nhận thức</p>
+    <p class="tag">Mỗi ô <b style="color:var(--gold)">?</b> là một câu hỏi. Trả lời đúng để nhảy qua từng ô, đi hết màn và cứu Công chúa ở lâu đài! Mỗi lượt bốc ngẫu nhiên <b>20 trong 30 câu</b>.</p>
+
+    <div class="namebox">
+      <input id="nameInput" maxlength="18" placeholder="Nhập tên của bạn" autocomplete="off">
+      <button class="btn red" id="playBtn">▶ CHƠI</button>
+    </div>
+
+    <div class="rules">
+      <div class="rule panel"><b>🪙 Điểm</b>Đúng: +100đ, cộng thưởng thời gian (tối đa +100) và chuỗi đúng liên tiếp.</div>
+      <div class="rule panel"><b>🏆 Xếp hạng</b>Điểm được ghi vào bảng xếp hạng chung của cả lớp theo thời gian thực.</div>
+      <div class="rule panel"><b>⭐ Điểm cộng</b>Đúng ≥ 80%: +1 · Hạng 1: +2 điểm cộng vào bài (gợi ý cho giảng viên).</div>
+    </div>
+    <div class="lb panel" id="startLB"></div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="game" class="hidden">
+    <div id="hud" class="panel">
+      <div class="stat"><small>SCORE</small><b id="hScore">0</b></div>
+      <div class="stat"><small>CÂU</small><b id="hProg">1/20</b></div>
+      <div class="stat"><small>ĐÚNG</small><b id="hCorrect">0</b></div>
+      <div class="stat"><small>CHUỖI</small><b id="hStreak">0</b></div>
+      <div class="stat"><small>TIME</small><div class="timebar"><i id="timeFill"></i></div></div>
+    </div>
+
+    <div class="scene">
+      <div class="cloud" style="width:46px;height:18px;top:22px;left:12%"></div>
+      <div class="cloud" style="width:64px;height:22px;top:14px;left:52%"></div>
+      <div class="cloud" style="width:40px;height:16px;top:40px;left:78%"></div>
+      <div class="groundstrip"></div>
+      <div class="track" id="track"></div>
+      <div class="mario" id="mario"><div class="cap"></div><div class="brim"></div><div class="face"></div><div class="body"></div></div>
+      <div class="princess" id="princess" style="opacity:0">👑</div>
+    </div>
+
+    <div id="qcard" class="panel">
+      <div class="qmeta">
+        <span id="qTag">CÂU 1 / 20</span>
+        <span class="streak" id="qStreak"></span>
+      </div>
+      <p class="qtext" id="qText">…</p>
+      <div class="opts" id="opts"></div>
+    </div>
+  </section>
+
+  <!-- ============ END ============ -->
+  <section id="end" class="hidden">
+    <h2 class="logo" id="endTitle" style="font-size:clamp(16px,5vw,30px)">🏰 CHIẾN THẮNG!</h2>
+    <p class="subtitle" id="endSub">Bạn đã cứu được Công chúa Chân Lý!</p>
+    <div class="result-score" id="endScore">0</div>
+    <div class="bd">
+      <div class="cell panel"><small>ĐÚNG</small><b id="eCorrect">0/20</b></div>
+      <div class="cell panel"><small>CHÍNH XÁC</small><b id="eAcc">0%</b></div>
+      <div class="cell panel"><small>CHUỖI DÀI</small><b id="eBest">0</b></div>
+    </div>
+    <div class="bonus" id="eBonus"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn green" id="againBtn">↻ CHƠI LẠI</button>
+      <button class="btn" id="shareBtn">🏆 XEM BXH</button>
+    </div>
+    <div class="lb panel" id="endLB" style="margin-top:20px"></div>
+    <p class="foot">Giải Cứu Công Chúa Chân Lý · Nội dung: Giáo trình Triết học Mác – Lênin (2021), Chương 2 – Lý luận nhận thức.</p>
+  </section>
+</div>
+
+<script>
+/* ============ QUESTION BANK (30) ============ */
+const BANK=[
+ {q:"Theo triết học Mác – Lênin, thực tiễn là gì?",o:["Toàn bộ hoạt động vật chất – cảm tính, có tính lịch sử – xã hội nhằm cải tạo tự nhiên và xã hội","Toàn bộ hoạt động tư duy, tinh thần của con người","Hoạt động sáng tạo ra thế giới của thượng đế","Mọi hoạt động bản năng của con người và động vật"],a:0},
+ {q:"Hình thức thực tiễn nào là cơ bản nhất, quyết định nhất?",o:["Hoạt động sản xuất vật chất","Hoạt động chính trị – xã hội","Thực nghiệm khoa học","Hoạt động nghệ thuật"],a:0},
+ {q:"Đâu KHÔNG phải là một hình thức cơ bản của thực tiễn?",o:["Hoạt động tư duy lý luận thuần túy","Sản xuất vật chất","Hoạt động chính trị – xã hội","Thực nghiệm khoa học"],a:0},
+ {q:"Bản chất của nhận thức theo chủ nghĩa duy vật biện chứng là gì?",o:["Sự phản ánh tích cực, sáng tạo hiện thực khách quan vào bộ óc con người","Sự phản ánh thụ động, một chiều thế giới","Sự bịa đặt của trí tưởng tượng","Sự áp đặt ý thức lên thế giới"],a:0},
+ {q:"Chỉ có thực tiễn mới \"vật chất hóa\" tri thức để khẳng định chân lý hay bác bỏ sai lầm. Đó là vai trò nào của thực tiễn?",o:["Tiêu chuẩn kiểm tra chân lý","Cơ sở, nguồn gốc","Động lực","Mục đích"],a:0},
+ {q:"Câu \"Nhất nước, nhì phân, tam cần, tứ giống\" thể hiện vai trò nào của thực tiễn?",o:["Cơ sở, nguồn gốc của nhận thức","Mục đích của nhận thức","Tiêu chuẩn của chân lý","Không thể hiện vai trò nào"],a:0},
+ {q:"Vai trò nào của thực tiễn được coi là quan trọng nhất?",o:["Là tiêu chuẩn kiểm tra chân lý","Là cơ sở của nhận thức","Là động lực của nhận thức","Là mục đích của nhận thức"],a:0},
+ {q:"Theo giáo trình, tiêu chuẩn khách quan DUY NHẤT để kiểm tra chân lý là gì?",o:["Thực tiễn","Sự tán thành của số đông","Tính logic chặt chẽ của lý luận","Uy tín của nhà khoa học"],a:0},
+ {q:"Thực tiễn với tư cách là tiêu chuẩn của chân lý có tính chất gì?",o:["Vừa tuyệt đối, vừa tương đối","Chỉ tuyệt đối","Chỉ tương đối","Không xác định"],a:0},
+ {q:"Chân lý là gì?",o:["Tri thức phù hợp với hiện thực khách quan và đã được thực tiễn kiểm nghiệm","Điều được nhiều người tin là đúng","Ý kiến của người có quyền lực","Tri thức có trong sách vở"],a:0},
+ {q:"Tính chất nào KHÔNG phải của chân lý?",o:["Tính bất biến, luôn đúng ở mọi nơi mọi lúc","Tính khách quan","Tính cụ thể","Tính tương đối và tuyệt đối"],a:0},
+ {q:"Giáo trình khẳng định: \"Không có chân lý trừu tượng, chân lý luôn là...\"?",o:["cụ thể","chủ quan","tương đối","vĩnh viễn"],a:0},
+ {q:"Công thức của V.I. Lênin: \"Từ trực quan sinh động đến ... và từ ... đến thực tiễn\". Chỗ trống là?",o:["tư duy trừu tượng","cảm giác","biểu tượng","kinh nghiệm"],a:0},
+ {q:"Nhận thức cảm tính (trực quan sinh động) gồm các hình thức nào?",o:["Cảm giác, tri giác, biểu tượng","Khái niệm, phán đoán, suy lý","Cảm giác, khái niệm, suy lý","Tri giác, phán đoán, biểu tượng"],a:0},
+ {q:"Nhận thức lý tính (tư duy trừu tượng) gồm các hình thức nào?",o:["Khái niệm, phán đoán, suy lý","Cảm giác, tri giác, biểu tượng","Cảm giác, khái niệm, phán đoán","Tri giác, suy lý, biểu tượng"],a:0},
+ {q:"Hình thức nào là cao nhất của giai đoạn nhận thức cảm tính?",o:["Biểu tượng","Cảm giác","Tri giác","Khái niệm"],a:0},
+ {q:"\"Hình ảnh chủ quan của thế giới khách quan\" là định nghĩa của hình thức nhận thức nào?",o:["Cảm giác","Khái niệm","Phán đoán","Suy lý"],a:0},
+ {q:"Tuyệt đối hóa nhận thức cảm tính, hạ thấp nhận thức lý tính sẽ rơi vào?",o:["Chủ nghĩa duy cảm","Chủ nghĩa duy lý","Chủ nghĩa duy tâm","Thuyết bất khả tri"],a:0},
+ {q:"Tuyệt đối hóa nhận thức lý tính, coi thường nhận thức cảm tính sẽ rơi vào?",o:["Chủ nghĩa duy lý","Chủ nghĩa duy cảm","Chủ nghĩa duy vật","Thuyết khả tri"],a:0},
+ {q:"Nhận thức nhằm \"phục vụ, soi đường, dẫn dắt, chỉ đạo thực tiễn\". Đó là vai trò nào của thực tiễn?",o:["Mục đích của nhận thức","Cơ sở của nhận thức","Động lực của nhận thức","Tiêu chuẩn của chân lý"],a:0},
+ {q:"Đại dịch COVID-19 thúc đẩy công nghệ vắc-xin mRNA phát triển thần tốc. Điều này minh họa vai trò nào của thực tiễn?",o:["Động lực của nhận thức","Mục đích của nhận thức","Tiêu chuẩn của chân lý","Không minh họa vai trò nào"],a:0},
+ {q:"Hành trình Magellan đi vòng quanh thế giới chứng minh Trái Đất hình cầu. Đây là minh họa cho vai trò nào?",o:["Thực tiễn là tiêu chuẩn của chân lý","Thực tiễn là động lực","Thực tiễn là mục đích","Thực tiễn là nguồn gốc"],a:0},
+ {q:"Quan điểm thực tiễn yêu cầu lấy gì làm tiêu chuẩn kiểm tra sự đúng – sai của nhận thức?",o:["Thực tiễn","Kinh sách","Ý kiến chuyên gia","Số phiếu biểu quyết"],a:0},
+ {q:"Người coi thường lý luận, tuyệt đối hóa kinh nghiệm là mắc bệnh gì?",o:["Bệnh kinh nghiệm","Bệnh giáo điều","Bệnh thành tích","Bệnh chủ quan"],a:0},
+ {q:"Người tuyệt đối hóa lý luận, học thuộc câu chữ, xa rời thực tiễn, vận dụng máy móc là mắc bệnh gì?",o:["Bệnh giáo điều","Bệnh kinh nghiệm","Bệnh hình thức","Bệnh nóng vội"],a:0},
+ {q:"Nguyên tắc phương pháp luận bao trùm rút ra từ mối quan hệ thực tiễn – nhận thức là gì?",o:["Thống nhất giữa lý luận và thực tiễn","Tách rời lý luận khỏi thực tiễn","Ưu tiên tuyệt đối lý luận","Ưu tiên tuyệt đối kinh nghiệm"],a:0},
+ {q:"Theo C. Mác (Luận cương về Phoiơbắc), việc tư duy có đạt tới chân lý khách quan hay không \"là một vấn đề...\"?",o:["thực tiễn","lý luận","logic","tôn giáo"],a:0},
+ {q:"Chủ thể của nhận thức là ai?",o:["Con người hiện thực, đang sống và hoạt động thực tiễn","Bộ óc tách rời xã hội","Ý niệm tuyệt đối","Cảm giác thuần túy"],a:0},
+ {q:"Câu \"Học đi đôi với hành\" là biểu hiện của nguyên tắc nào?",o:["Thống nhất giữa lý luận và thực tiễn","Chỉ cần lý luận là đủ","Chỉ cần kinh nghiệm là đủ","Tách lý luận khỏi thực tiễn"],a:0},
+ {q:"Vì sao một mô hình thành công ở nước này chưa chắc đúng khi áp dụng nguyên xi ở nước khác?",o:["Vì chân lý luôn cụ thể, phải gắn với điều kiện, hoàn cảnh cụ thể","Vì chân lý mang tính chủ quan","Vì không có chân lý khách quan","Vì thực tiễn không kiểm tra được chân lý"],a:0},
+];
+
+/* ============ helpers ============ */
+const $=s=>document.querySelector(s);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a;};
+const KEYS=["A","B","C","D"];
+const QT=20, ROUND=20, PER_TIME=20; // seconds per question
+
+let state=null, dbNS=null, myName="", lastEntryId=null;
+
+/* ============ start ============ */
+try{ myName=localStorage.getItem("tl_name")||""; }catch(e){}
+if(myName) $("#nameInput").value=myName;
+
+$("#playBtn").onclick=start;
+$("#nameInput").addEventListener("keydown",e=>{if(e.key==="Enter")start();});
+$("#againBtn").onclick=()=>{show("start");renderLB($("#startLB"));};
+$("#shareBtn").onclick=()=>{show("start");renderLB($("#startLB"));$("#startLB").scrollIntoView({behavior:"smooth"});};
+
+function show(id){["start","game","end"].forEach(s=>$("#"+s).classList.toggle("hidden",s!==id));}
+
+function start(){
+  const n=$("#nameInput").value.trim();
+  if(!n){$("#nameInput").focus();$("#nameInput").style.outline="3px solid var(--red)";return;}
+  myName=n; try{localStorage.setItem("tl_name",n);}catch(e){}
+  const qs=shuffle(BANK).slice(0,ROUND).map(item=>{
+    const opts=shuffle(item.o.map((t,i)=>({t,correct:i===item.a})));
+    return {q:item.q,opts,answered:false};
+  });
+  state={qs,idx:0,score:0,correct:0,streak:0,best:0,timer:null,tleft:PER_TIME};
+  buildTrack();
+  show("game");
+  loadQuestion();
+}
+
+/* ============ scene ============ */
+function buildTrack(){
+  const t=$("#track");t.innerHTML="";t.style.transform="translateX(0)";
+  for(let i=0;i<ROUND;i++){
+    const b=document.createElement("div");b.className="qb";b.id="qb"+i;
+    b.innerHTML='?<span class="float">+0</span>';
+    t.appendChild(b);
+  }
+  const flag=document.createElement("div");flag.className="flag";t.appendChild(flag);
+  const c=document.createElement("div");c.className="castle";c.innerHTML='<div class="door"></div>';t.appendChild(c);
+  positionMario(0,false);
+  $("#princess").style.opacity=0;
+}
+function positionMario(i,animate){
+  const b=$("#qb"+i)||$("#track").lastElementChild;
+  const scene=$(".scene").getBoundingClientRect();
+  const br=b.getBoundingClientRect();
+  const x=br.left-scene.left+br.width/2-13;
+  const m=$("#mario");
+  m.style.left=Math.max(6,x)+"px";
+  // scroll track so mario stays around 35% from left
+  const track=$("#track");
+  const want=scene.width*0.34;
+  let shift=Math.min(0, want-(br.left-scene.left));
+  const maxShift=Math.min(0, scene.width-track.scrollWidth-20);
+  shift=Math.max(maxShift,shift);
+  track.style.transform="translateX("+shift+"px)";
+  if(animate){m.classList.remove("jump");void m.offsetWidth;m.classList.add("jump");}
+}
+
+/* ============ question flow ============ */
+function loadQuestion(){
+  const q=state.qs[state.idx];
+  $("#qTag").textContent="CÂU "+(state.idx+1)+" / "+ROUND;
+  $("#hProg").textContent=(state.idx+1)+"/"+ROUND;
+  $("#qStreak").textContent=state.streak>=2?("🔥 CHUỖI "+state.streak):"";
+  $("#qText").textContent=q.q;
+  const wrap=$("#opts");wrap.innerHTML="";
+  q.opts.forEach((op,i)=>{
+    const btn=document.createElement("button");btn.className="opt";
+    btn.innerHTML='<span class="key">'+KEYS[i]+'</span><span>'+op.t+'</span>';
+    btn.onclick=()=>answer(i,btn);
+    wrap.appendChild(btn);
+  });
+  positionMario(state.idx,false);
+  startTimer();
+}
+function startTimer(){
+  state.tleft=PER_TIME;
+  $("#timeFill").style.width="100%";
+  clearInterval(state.timer);
+  const t0=Date.now();
+  state.timer=setInterval(()=>{
+    const el=(Date.now()-t0)/1000;
+    state.tleft=Math.max(0,PER_TIME-el);
+    $("#timeFill").style.width=(state.tleft/PER_TIME*100)+"%";
+    if(state.tleft<=0){clearInterval(state.timer);answer(-1,null);}
+  },100);
+}
+function answer(choice,btn){
+  const q=state.qs[state.idx];
+  if(q.answered)return;q.answered=true;
+  clearInterval(state.timer);
+  const opts=$("#opts").children;
+  const correctIdx=q.opts.findIndex(o=>o.correct);
+  const ok=choice>=0 && q.opts[choice].correct;
+  const bump=$("#qb"+state.idx);
+  for(let i=0;i<opts.length;i++){
+    opts[i].disabled=true;
+    if(i===correctIdx)opts[i].classList.add("correct");
+    else if(i===choice)opts[i].classList.add("wrong");
+    else opts[i].classList.add("dim");
+  }
+  let gained=0;
+  if(ok){
+    const tb=Math.round(state.tleft/PER_TIME*100);
+    const sb=state.streak*15;
+    gained=100+tb+sb;
+    state.score+=gained;state.correct++;state.streak++;
+    state.best=Math.max(state.best,state.streak);
+    bump.classList.add("done");
+    bump.querySelector(".float").textContent="+"+gained;
+  }else{
+    state.streak=0;
+    bump.classList.add("miss");
+    bump.querySelector(".float").textContent=choice<0?"HẾT GIỜ":"SAI";
+  }
+  bump.classList.add("pop");
+  $("#hScore").textContent=state.score;
+  $("#hCorrect").textContent=state.correct;
+  $("#hStreak").textContent=state.streak;
+  setTimeout(()=>{
+    state.idx++;
+    if(state.idx>=ROUND){ positionMario(ROUND,true); setTimeout(finish,600); }
+    else{ positionMario(state.idx,true); setTimeout(loadQuestion,120); }
+  },1100);
+}
+
+/* ============ finish ============ */
+function finish(){
+  const acc=Math.round(state.correct/ROUND*100);
+  const pr=$("#princess");
+  const m=$("#mario").getBoundingClientRect();
+  const scene=$(".scene").getBoundingClientRect();
+  pr.style.left=(m.left-scene.left)+"px";pr.style.opacity=1;pr.style.bottom="64px";
+  const rescued=state.correct>=ROUND/2;
+  $("#endTitle").textContent=rescued?"🏰 CHIẾN THẮNG!":"💀 CHƯA CỨU ĐƯỢC";
+  $("#endSub").textContent=rescued?"Bạn đã cứu được Công chúa Chân Lý!":"Công chúa vẫn ở lâu đài — thử lại nhé!";
+  $("#endScore").textContent=state.score;
+  $("#eCorrect").textContent=state.correct+"/"+ROUND;
+  $("#eAcc").textContent=acc+"%";
+  $("#eBest").textContent=state.best;
+  let bonus="⭐ Điểm cộng gợi ý: ";
+  if(acc>=90)bonus+="+2 (xuất sắc, ≥90%)";
+  else if(acc>=80)bonus+="+1 (giỏi, ≥80%)";
+  else bonus+="chưa đạt mốc cộng (cần ≥80%)";
+  $("#eBonus").textContent=bonus;
+  show("end");
+  submitScore(acc);
+}
+
+/* ============ leaderboard (db) ============ */
+async function initDB(){ try{ dbNS=await claude.use("db"); }catch(e){ dbNS=null; } bindLB(); }
+function localBoard(){ try{return JSON.parse(localStorage.getItem("tl_board")||"[]");}catch(e){return[];} }
+function saveLocal(entry){ try{ const b=localBoard();b.push(entry);localStorage.setItem("tl_board",JSON.stringify(b.slice(-200))); }catch(e){} }
+
+async function submitScore(acc){
+  const entry={name:myName,score:state.score,correct:state.correct,total:ROUND,acc,ts:Date.now()};
+  lastEntryId="local-"+entry.ts+"-"+Math.random().toString(36).slice(2,6);
+  saveLocal({...entry,id:lastEntryId});
+  if(dbNS){
+    try{
+      const ref=await dbNS.collection("scores").add(entry);
+      lastEntryId=ref.id;
+    }catch(e){}
+  }
+  renderLB($("#endLB"));
+}
+
+let lbCache=[];
+function bindLB(){
+  if(dbNS){
+    try{
+      dbNS.collection("scores").orderBy("score","desc").limit(15).onSnapshot(snap=>{
+        lbCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+        renderLB($("#startLB"));
+        if(!$("#end").classList.contains("hidden"))renderLB($("#endLB"));
+      },err=>{});
+    }catch(e){ renderLB($("#startLB")); }
+  }else{
+    renderLB($("#startLB"));
+  }
+}
+function currentBoard(){
+  if(dbNS && lbCache.length) return lbCache.slice().sort((a,b)=>b.score-a.score);
+  return localBoard().sort((a,b)=>b.score-a.score);
+}
+function renderLB(container){
+  if(!container)return;
+  const rows=currentBoard().slice(0,10);
+  let html='<h3>🏆 BẢNG XẾP HẠNG</h3>';
+  if(!rows.length){
+    html+='<p class="lb-note">Chưa có ai chơi. Hãy là người đầu tiên cứu công chúa!</p>';
+  }else{
+    rows.forEach((r,i)=>{
+      const cls=["","top1","top2","top3"][i+1<=3?i+1:0]||"";
+      const me=(r.id&&r.id===lastEntryId)?" me":"";
+      const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
+      html+='<div class="lb-row '+cls+me+'"><span class="rk">'+medal+'</span>'+
+            '<span>'+escapeHtml(r.name||"Ẩn danh")+' <small style="color:var(--muted);font-weight:400">('+(r.correct||0)+'/'+(r.total||ROUND)+')</small></span>'+
+            '<span class="sc">'+ (r.score||0) +'</span></div>';
+    });
+  }
+  html+='<p class="lb-note">'+(dbNS?"Xếp hạng chung của cả lớp — cập nhật trực tiếp.":"Xếp hạng lưu trên máy này (mở link đã đăng để xếp hạng chung cả lớp).")+'</p>';
+  container.innerHTML=html;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* boot */
+renderLB($("#startLB"));
+initDB();
+window.addEventListener("resize",()=>{ if(state && !$("#game").classList.contains("hidden")) positionMario(Math.min(state.idx,ROUND),false); });
+</script>
