@@ -30,7 +30,7 @@
               <input id="idInput" maxlength="15" autocomplete="off" placeholder="VD: 21520001">
             </label>
             <p class="error" id="formError" role="alert"></p>
-            <button type="submit" class="btn primary">BẮT ĐẦU ▶</button>
+            <button type="submit" class="btn primary" id="startBtn">BẮT ĐẦU ▶</button>
           </form>
         </div>
         <div>
@@ -39,10 +39,11 @@
             <p><kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd> di chuyển · <kbd>Space</kbd> nhảy</p>
             <ul class="rules">
               <li>🪙 Mỗi đồng xu = <b>10 điểm</b></li>
-              <li>❓ Đập ô <b>?</b> → trả lời đúng rơi ra <b>5 xu</b></li>
+              <li>❓ <b>12 ô ?</b> → mỗi ô 1 câu hỏi, đúng thì rơi ra <b>5 xu</b></li>
               <li>💀 Mỗi lần chết bị <b>trừ nửa điểm</b></li>
               <li>⏱ Giới hạn <b>10 phút</b> — đồng hồ vẫn chạy khi trả lời</li>
               <li>👑 Đến lâu đài cứu công chúa để kết thúc sớm</li>
+              <li>🎮 Mỗi MSSV được <b>3 lượt chơi</b>, tính điểm cao nhất</li>
             </ul>
           </div>
           <div class="board">
@@ -66,7 +67,7 @@
         </div>
         <p class="qtext" id="quizText"></p>
         <div class="opts" id="quizOpts"></div>
-        <p class="quiz-note" id="quizNote">Trả lời đúng: +5 xu (50 điểm). Bấm phím 1–4 hoặc nhấp chuột.</p>
+        <p class="quiz-note" id="quizNote"></p>
       </div>
     </section>
 
@@ -122,7 +123,6 @@
   </form>
 </dialog>
 
-<script src="questions.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

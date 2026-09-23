@@ -21,10 +21,10 @@
   const GAPS = [[38, 40], [70, 73], [112, 114], [150, 153]];
   const PIPES = [[28, 2], [36, 3], [46, 4], [57, 4], [134, 2], [142, 3], [168, 2]];
   const ENEMY_X = [22, 31, 44, 52, 62, 66, 80, 90, 96, 105, 109, 130, 137, 146, 160, 164, 170, 176];
-  // 20 ô ? ↔ 20 câu hỏi mỗi lượt
+  // 12 ô ? ↔ 12 câu hỏi mỗi lượt (server bốc ngẫu nhiên 12 trong 50 câu)
   const QBLOCKS = [
-    [16, 11], [21, 11], [23, 11], [22, 7], [51, 11], [65, 11], [78, 11], [84, 7], [90, 11], [94, 11],
-    [100, 11], [103, 11], [100, 7], [131, 11], [139, 11], [146, 11], [157, 11], [158, 7], [165, 11], [173, 10],
+    [16, 11], [22, 7], [51, 11], [78, 11], [84, 7], [94, 11],
+    [100, 7], [131, 11], [139, 11], [157, 11], [165, 11], [173, 10],
   ];
   const CHECKPOINT_X = 100 * T;
   const CASTLE_X = 201;
@@ -39,11 +39,6 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* bỏ qua */ } },
   };
 
-  const shuffle = a => {
-    a = a.slice();
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  };
   const fmtTime = s => {
     s = Math.max(0, Math.ceil(s));
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
@@ -163,7 +158,8 @@
   let hero, camX = 0, gt = 0;
   let state = 'menu';            // menu | playing | paused | quiz | dying | win | over
   let score = 0, coinCount = 0, deaths = 0, timeLeft = GAME_TIME;
-  let correct = 0, answered = 0, quizQueue = [], quiz = null;
+  let correct = 0, answered = 0, quiz = null;
+  let session = null, quizIndex = 0;   // phiên chơi do server cấp (đề bài, không có đáp án)
   let checkpoint = 3 * T, checkpointReached = false;
   let particles = [], popups = [], coinPops = [], bumps = [], hearts = [];
   let deathT = 0, winT = 0, endShown = false, introT = 0, penaltyT = 0, penaltyLost = 0;
@@ -183,7 +179,9 @@
     });
 
     // Gạch
-    [20, 22, 24, 50, 52, 77, 79, 106, 107, 108, 138, 140, 156, 158, 159].forEach(x => set(x, 11, BRICK));
+    [20, 21, 22, 23, 24, 50, 52, 65, 77, 79, 90, 100, 103, 106, 107, 108, 138, 140, 146, 156, 158, 159]
+      .forEach(x => set(x, 11, BRICK));
+    set(158, 7, BRICK);
     [172, 174, 175].forEach(x => set(x, 10, BRICK));
     for (let x = 80; x <= 87; x++) set(x, 7, BRICK);
     // Ô ?
@@ -227,20 +225,11 @@
     };
   }
 
-  function buildQuizQueue() {
-    const bank = Array.isArray(window.QUESTIONS) ? window.QUESTIONS : [];
-    quizQueue = shuffle(bank).slice(0, QBLOCKS.length).map(q => ({
-      q: q.q,
-      opts: shuffle(q.o.map((t, i) => ({ t, correct: i === q.a }))),
-    }));
-  }
-
   function resetGame() {
     buildLevel();
     resetEnemies();
-    buildQuizQueue();
     score = 0; coinCount = 0; deaths = 0; timeLeft = GAME_TIME;
-    correct = 0; answered = 0; quiz = null;
+    correct = 0; answered = 0; quiz = null; quizIndex = 0;
     checkpoint = 3 * T; checkpointReached = false;
     particles = []; popups = []; coinPops = []; bumps = []; hearts = [];
     endShown = false; winT = 0; deathT = 0; introT = 3; penaltyT = 0;
@@ -348,15 +337,16 @@
   const QUIZ_NOTE = `Trả lời đúng: +${QUIZ_COINS} xu (${QUIZ_COINS * COIN_POINTS} điểm). Bấm phím 1–4 hoặc nhấp chuột.`;
 
   function openQuiz(tx, ty) {
-    const item = quizQueue.shift();
+    const item = session && session.questions[quizIndex];
     if (!item) { dropQuizCoins(tx, ty); return; }   // phòng khi thiếu câu hỏi
+    const index = quizIndex++;
     state = 'quiz';
-    quiz = { item, tx, ty, done: false };
+    quiz = { item, index, tx, ty, done: false };
     keys.left = keys.right = keys.jump = false;
 
     quizText.textContent = item.q;
     quizOpts.innerHTML = '';
-    item.opts.forEach((o, i) => {
+    item.opts.forEach((text, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'opt';
@@ -364,27 +354,45 @@
       k.className = 'k';
       k.textContent = i + 1;
       const s = document.createElement('span');
-      s.textContent = o.t;
+      s.textContent = text;
       b.append(k, s);
       b.addEventListener('click', () => answerQuiz(i));
       quizOpts.appendChild(b);
     });
     quizNote.className = 'quiz-note';
-    quizNote.textContent = QUIZ_NOTE;
+    quizNote.textContent = `Câu ${index + 1}/${session.questions.length} · ${QUIZ_NOTE}`;
     quizScreen.classList.remove('hidden');
   }
 
-  function answerQuiz(i) {
+  // Đáp án do server chấm — trình duyệt không biết đáp án trước khi trả lời
+  async function answerQuiz(i) {
     if (!quiz || quiz.done) return;
-    quiz.done = true;
+    const q = quiz;
+    q.done = true;
+    const buttons = [...quizOpts.children];
+    buttons.forEach(b => { b.disabled = true; });
+    quizNote.className = 'quiz-note';
+    quizNote.textContent = 'Đang chấm…';
+
+    let result;
+    try {
+      result = await api('/api/answer', { token: session.token, index: q.index, choice: i });
+    } catch (e) {
+      if (quiz !== q) return;
+      q.done = false;
+      buttons.forEach(b => { b.disabled = false; });
+      quizNote.className = 'quiz-note err';
+      quizNote.textContent = 'Lỗi kết nối: ' + e.message + '. Hãy chọn lại.';
+      return;
+    }
+    if (quiz !== q) return;
+
     answered++;
-    const ok = quiz.item.opts[i].correct;
-    [...quizOpts.children].forEach((b, j) => {
-      b.disabled = true;
-      if (quiz.item.opts[j].correct) b.classList.add('correct');
+    buttons.forEach((b, j) => {
+      if (j === result.answer) b.classList.add('correct');
       else if (j === i) b.classList.add('wrong');
     });
-    if (ok) {
+    if (result.correct) {
       correct++;
       quizNote.className = 'quiz-note ok';
       quizNote.textContent = `Chính xác! +${QUIZ_COINS} xu 🪙`;
@@ -394,8 +402,7 @@
       quizNote.textContent = 'Sai rồi! Đáp án đúng được tô xanh.';
       sfx.wrong();
     }
-    const q = quiz;
-    setTimeout(() => closeQuiz(q, ok), ok ? 900 : 2000);
+    setTimeout(() => closeQuiz(q, result.correct), result.correct ? 900 : 2200);
   }
 
   function closeQuiz(q, ok) {
@@ -1087,6 +1094,8 @@
     submitStatus.textContent = 'Đang gửi điểm…';
     try {
       const d = await api('/api/score', payload);
+      attemptsLeft = d.attemptsLeft;
+      updateRetryButton();
       submitStatus.className = 'submit-status ok';
       submitStatus.textContent = d.improved
         ? `✔ Đã lưu điểm — bạn đang xếp hạng #${d.rank}`
@@ -1125,6 +1134,7 @@
       ['Số lần chết', deaths],
       ['Thời gian', fmtTime(timeUsed)],
     ];
+    if (session) rows.push(['Lượt chơi', `${session.attemptNo}/${session.maxAttempts}`]);
     const dl = $('endStats');
     dl.innerHTML = '';
     rows.forEach(([k, v]) => {
@@ -1134,14 +1144,42 @@
     });
     endScreen.classList.remove('hidden');
     $('btnRetry').focus();
-    submitScore({
-      name: profile.name, sid: profile.id, score, coins: coinCount, won,
-      timeUsed, deaths, correct, answered,
-    });
+    submitScore({ token: session && session.token, score, coins: coinCount, won, timeUsed, deaths });
   }
 
-  function startGame() {
+  function updateRetryButton() {
+    const btn = $('btnRetry');
+    const out = attemptsLeft !== null && attemptsLeft <= 0;
+    btn.disabled = out;
+    btn.textContent = out ? 'HẾT LƯỢT CHƠI' : (attemptsLeft === null ? 'CHƠI LẠI' : `CHƠI LẠI (CÒN ${attemptsLeft} LƯỢT)`);
+  }
+
+  let attemptsLeft = null;
+  const startBtn = $('startBtn');
+
+  async function startGame() {
     initAudio();
+    startBtn.disabled = true;
+    formError.textContent = '';
+    submitStatus.textContent = '';
+    const prev = startBtn.textContent;
+    startBtn.textContent = 'ĐANG TẢI…';
+    try {
+      session = await api('/api/session', { name: profile.name, sid: profile.id });
+      attemptsLeft = session.attemptsLeft;
+    } catch (e) {
+      session = null;
+      formError.textContent = e.message;
+      endScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+      state = 'menu';
+      updateRetryButton();
+      return;
+    } finally {
+      startBtn.disabled = false;
+      startBtn.textContent = prev;
+    }
+    updateRetryButton();
     resetGame();
     startScreen.classList.add('hidden');
     endScreen.classList.add('hidden');
@@ -1182,6 +1220,10 @@
     startScreen.classList.remove('hidden');
     state = 'menu';
     endShown = false;
+    session = null;
+    attemptsLeft = null;
+    updateRetryButton();
+    formError.textContent = '';
     fetchBoard();
     nameInput.focus();
   });
@@ -1225,7 +1267,7 @@
       teleport(tx, ty = 5) { hero.x = tx * T; hero.y = ty * T; hero.vy = 0; },
       step(sec) { for (let i = 0; i < sec * 60; i++) { update(1 / 60); jumpPressed = false; } draw(); },
       press(k, down) { if (down) pressKey(k); else keys[k] = false; },
-      get info() { return { state, score, coinCount, deaths, correct, answered, timeLeft, heroY: hero.y, totalCoins: coins.length, quiz: quizQueue.length }; },
+      get info() { return { state, score, coinCount, deaths, correct, answered, timeLeft, heroY: hero.y, totalCoins: coins.length, quizLeft: session ? session.questions.length - quizIndex : 0, attemptsLeft }; },
     };
   }
 
