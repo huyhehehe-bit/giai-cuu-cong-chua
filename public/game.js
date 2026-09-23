@@ -333,20 +333,60 @@
   }
 
   // ================== CÂU HỎI ==================
-  const quizScreen = $('quizScreen'), quizText = $('quizText'), quizOpts = $('quizOpts'), quizNote = $('quizNote');
+  const quizScreen = $('quizScreen'), quizText = $('quizText'), quizOpts = $('quizOpts'),
+    quizNote = $('quizNote'), quizBar = $('quizBar');
   const QUIZ_NOTE = `Trả lời đúng: +${QUIZ_COINS} xu (${QUIZ_COINS * COIN_POINTS} điểm). Bấm phím 1–4 hoặc nhấp chuột.`;
 
-  function openQuiz(tx, ty) {
-    const item = session && session.questions[quizIndex];
-    if (!item) { dropQuizCoins(tx, ty); return; }   // phòng khi thiếu câu hỏi
+  // Chặn copy đề: không bôi đen, không chuột phải, không Ctrl+C/X/A/S/P trong hộp câu hỏi
+  quizScreen.addEventListener('contextmenu', e => e.preventDefault());
+  quizScreen.addEventListener('selectstart', e => e.preventDefault());
+  quizScreen.addEventListener('copy', e => e.preventDefault());
+  quizScreen.addEventListener('cut', e => e.preventDefault());
+  quizScreen.addEventListener('dragstart', e => e.preventDefault());
+
+  // Đề bài chỉ được server phát khi người chơi đập ô ?, kèm đồng hồ riêng cho câu đó
+  async function openQuiz(tx, ty) {
+    if (!session || quizIndex >= session.quizCount) { dropQuizCoins(tx, ty); return; }
     const index = quizIndex++;
     state = 'quiz';
-    quiz = { item, index, tx, ty, done: false };
+    quiz = { index, tx, ty, done: true, endsAt: 0, loading: true };
     keys.left = keys.right = keys.jump = false;
 
-    quizText.textContent = item.q;
+    quizText.textContent = 'Đang tải câu hỏi…';
     quizOpts.innerHTML = '';
-    item.opts.forEach((text, i) => {
+    quizBar.style.width = '100%';
+    quizNote.className = 'quiz-note';
+    quizNote.textContent = '';
+    $('quizCount').textContent = `Câu ${index + 1}/${session.quizCount}`;
+    quizScreen.classList.remove('hidden');
+
+    const q = quiz;
+    let data;
+    try {
+      data = await api('/api/ask', { token: session.token, index });
+    } catch (e) {
+      if (quiz !== q) return;
+      quizText.textContent = 'Không tải được câu hỏi.';
+      quizNote.className = 'quiz-note err';
+      quizNote.textContent = e.message;
+      const again = document.createElement('button');
+      again.type = 'button';
+      again.className = 'btn';
+      again.textContent = 'THỬ LẠI';
+      again.addEventListener('click', () => { quizIndex--; openQuiz(tx, ty); });
+      quizOpts.appendChild(again);
+      return;
+    }
+    if (quiz !== q) return;
+
+    q.loading = false;
+    q.done = false;
+    q.seconds = data.quizSeconds;
+    q.endsAt = performance.now() + data.secondsLeft * 1000;
+
+    quizText.textContent = data.q;
+    quizOpts.innerHTML = '';
+    data.opts.forEach((text, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'opt';
@@ -359,9 +399,17 @@
       b.addEventListener('click', () => answerQuiz(i));
       quizOpts.appendChild(b);
     });
-    quizNote.className = 'quiz-note';
-    quizNote.textContent = `Câu ${index + 1}/${session.questions.length} · ${QUIZ_NOTE}`;
-    quizScreen.classList.remove('hidden');
+    quizNote.textContent = QUIZ_NOTE;
+  }
+
+  // Đếm ngược của riêng câu hỏi; hết giờ thì tự nộp với lựa chọn -1
+  function updateQuizTimer() {
+    if (!quiz || quiz.loading) return;
+    const left = Math.max(0, quiz.endsAt - performance.now()) / 1000;
+    quizBar.style.width = (left / quiz.seconds * 100) + '%';
+    quizBar.classList.toggle('low', left <= 5);
+    $('quizTime').textContent = '⏱ ' + left.toFixed(1) + 's';
+    if (left <= 0 && !quiz.done) answerQuiz(-1);
   }
 
   // Đáp án do server chấm — trình duyệt không biết đáp án trước khi trả lời
@@ -379,10 +427,12 @@
       result = await api('/api/answer', { token: session.token, index: q.index, choice: i });
     } catch (e) {
       if (quiz !== q) return;
-      q.done = false;
-      buttons.forEach(b => { b.disabled = false; });
+      const outOfTime = performance.now() >= q.endsAt;
+      q.done = outOfTime;
+      buttons.forEach(b => { b.disabled = outOfTime; });
       quizNote.className = 'quiz-note err';
-      quizNote.textContent = 'Lỗi kết nối: ' + e.message + '. Hãy chọn lại.';
+      quizNote.textContent = 'Lỗi kết nối: ' + e.message + (outOfTime ? '' : '. Hãy chọn lại.');
+      if (outOfTime) setTimeout(() => closeQuiz(q, false), 1500);
       return;
     }
     if (quiz !== q) return;
@@ -399,7 +449,9 @@
       sfx.right();
     } else {
       quizNote.className = 'quiz-note err';
-      quizNote.textContent = 'Sai rồi! Đáp án đúng được tô xanh.';
+      quizNote.textContent = result.expired || i === -1
+        ? 'Hết giờ! Đáp án đúng được tô xanh.'
+        : 'Sai rồi! Đáp án đúng được tô xanh.';
       sfx.wrong();
     }
     setTimeout(() => closeQuiz(q, result.correct), result.correct ? 900 : 2200);
@@ -584,10 +636,11 @@
     showEnd('timeout');
   }
 
-  function update(dt) {
+  // dt dùng cho vật lý (có chặn trần), rawDt là thời gian thật dùng cho đồng hồ 10 phút
+  function update(dt, rawDt = dt) {
     gt += dt;
     if (state === 'playing' || state === 'quiz' || state === 'dying') {
-      timeLeft -= dt;
+      timeLeft -= rawDt;
       if (timeLeft <= 0) { timeLeft = 0; timeUp(); }
     }
     if (state === 'playing') {
@@ -978,7 +1031,7 @@
     else if (state === 'playing' && penaltyT > 0) drawCenterMsg('-' + penaltyLost, 'Bạn đã chết — bị trừ nửa số điểm!', '#ff6b6b');
     else if (state === 'playing' && introT > 0) drawCenterMsg('WORLD 1-1', 'Đập ô ? để trả lời câu hỏi · Giữ Space để bay cao!');
     else if (state === 'win' && winT > 0.3) drawCenterMsg('YOU WIN!', 'Bạn đã giải cứu công chúa!');
-    if (state === 'quiz') $('quizTime').textContent = '⏱ ' + fmtTime(timeLeft);
+    if (state === 'quiz') updateQuizTimer();
   }
 
   // ================== ĐẦU VÀO ==================
@@ -999,6 +1052,7 @@
       const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
       if (m) { e.preventDefault(); answerQuiz(Number(m[1]) - 1); }
       else if (KEYMAP[e.code]) e.preventDefault();
+      else if ((e.ctrlKey || e.metaKey) && ['KeyC', 'KeyX', 'KeyA', 'KeyS', 'KeyP'].includes(e.code)) e.preventDefault();
       return;
     }
     if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); e.preventDefault(); return; }
@@ -1267,15 +1321,16 @@
       teleport(tx, ty = 5) { hero.x = tx * T; hero.y = ty * T; hero.vy = 0; },
       step(sec) { for (let i = 0; i < sec * 60; i++) { update(1 / 60); jumpPressed = false; } draw(); },
       press(k, down) { if (down) pressKey(k); else keys[k] = false; },
-      get info() { return { state, score, coinCount, deaths, correct, answered, timeLeft, heroY: hero.y, totalCoins: coins.length, quizLeft: session ? session.questions.length - quizIndex : 0, attemptsLeft }; },
+      get info() { return { state, score, coinCount, deaths, correct, answered, timeLeft, heroY: hero.y, totalCoins: coins.length, quizLeft: session ? session.quizCount - quizIndex : 0, attemptsLeft }; },
     };
   }
 
   let last = performance.now();
   function frame(now) {
-    const dt = Math.min((now - last) / 1000, 1 / 30);
+    const rawDt = (now - last) / 1000;
+    const dt = Math.min(rawDt, 1 / 30);
     last = now;
-    if (state !== 'paused') update(dt);
+    if (state !== 'paused') update(dt, rawDt);
     jumpPressed = false;
     draw();
     requestAnimationFrame(frame);

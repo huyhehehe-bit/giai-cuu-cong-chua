@@ -11,8 +11,10 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const ADMIN_KEY = process.env.ADMIN_KEY || (IS_PROD ? '' : 'admin');
 const DATA_FILE = path.join(__dirname, 'data', 'leaderboard.json');
 
-const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS) || 3;  // số lượt chơi mỗi MSSV trong 1 vòng
+const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS) || 2;  // số lượt chơi mỗi MSSV trong 1 vòng
 const QUIZ_COUNT = 12;         // số ô ? = số câu hỏi mỗi lượt
+const QUIZ_SECONDS = 20;       // thời gian trả lời mỗi câu
+const GRACE_MS = 2000;         // trừ hao độ trễ mạng khi kiểm tra hết giờ
 const QUIZ_COINS = 5;          // trả lời đúng → 5 xu
 const FIELD_COINS = 67;        // số xu rải sẵn trên màn
 const COIN_POINTS = 10;
@@ -82,7 +84,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.get('/api/config', (req, res) => {
-  res.json({ maxAttempts: MAX_ATTEMPTS, quizCount: QUIZ_COUNT, quizCoins: QUIZ_COINS, coinPoints: COIN_POINTS, gameTime: MAX_TIME });
+  res.json({ maxAttempts: MAX_ATTEMPTS, quizCount: QUIZ_COUNT, quizCoins: QUIZ_COINS, coinPoints: COIN_POINTS, gameTime: MAX_TIME, quizSeconds: QUIZ_SECONDS });
 });
 
 app.get('/api/leaderboard', (req, res) => {
@@ -110,30 +112,57 @@ app.post('/api/session', (req, res) => {
 
   const token = crypto.randomUUID();
   const questions = pickQuestions();
-  sessions.set(token, { token, sid, name, round: db.round.id, questions, answers: new Array(QUIZ_COUNT).fill(null), finished: false, createdAt: Date.now() });
+  sessions.set(token, {
+    token, sid, name, round: db.round.id, questions,
+    answers: new Array(QUIZ_COUNT).fill(null), askedAt: new Array(QUIZ_COUNT).fill(null),
+    finished: false, createdAt: Date.now(),
+  });
 
+  // Không gửi kèm câu hỏi: từng câu chỉ được phát khi người chơi đập ô ?
   res.json({
     token,
     attemptsLeft: MAX_ATTEMPTS - used - 1,
     attemptNo: used + 1,
     maxAttempts: MAX_ATTEMPTS,
-    questions: questions.map(q => ({ q: q.q, opts: q.opts })),
+    quizCount: QUIZ_COUNT,
+    quizSeconds: QUIZ_SECONDS,
   });
 });
 
-// Chấm một câu hỏi
+// Phát một câu hỏi và bắt đầu đếm giờ cho câu đó
+app.post('/api/ask', (req, res) => {
+  const { token, index } = req.body || {};
+  const s = sessions.get(token);
+  if (!s) return res.status(400).json({ error: 'Phiên chơi không tồn tại hoặc đã hết hạn' });
+  if (s.finished) return res.status(400).json({ error: 'Lượt chơi đã kết thúc' });
+  if (!isInt(index, 0, s.questions.length - 1)) return res.status(400).json({ error: 'Câu hỏi không hợp lệ' });
+  if (s.answers[index] !== null) return res.status(400).json({ error: 'Câu này đã được trả lời' });
+
+  // Mở lại câu đang dở (ví dụ lỗi mạng) thì giữ nguyên đồng hồ cũ, không được gia hạn
+  if (s.askedAt[index] === null) s.askedAt[index] = Date.now();
+  const left = QUIZ_SECONDS * 1000 - (Date.now() - s.askedAt[index]);
+
+  const q = s.questions[index];
+  res.json({ q: q.q, opts: q.opts, index, secondsLeft: Math.max(0, left / 1000), quizSeconds: QUIZ_SECONDS });
+});
+
+// Chấm một câu hỏi (choice = -1 nghĩa là hết giờ)
 app.post('/api/answer', (req, res) => {
   const { token, index, choice } = req.body || {};
   const s = sessions.get(token);
   if (!s) return res.status(400).json({ error: 'Phiên chơi không tồn tại hoặc đã hết hạn' });
   if (s.finished) return res.status(400).json({ error: 'Lượt chơi đã kết thúc' });
   if (!isInt(index, 0, s.questions.length - 1)) return res.status(400).json({ error: 'Câu hỏi không hợp lệ' });
+  if (s.askedAt[index] === null) return res.status(400).json({ error: 'Câu này chưa được phát' });
   if (s.answers[index] !== null) return res.status(400).json({ error: 'Câu này đã được trả lời' });
-  if (!isInt(choice, 0, 3)) return res.status(400).json({ error: 'Lựa chọn không hợp lệ' });
+  if (!isInt(choice, -1, 3)) return res.status(400).json({ error: 'Lựa chọn không hợp lệ' });
 
-  s.answers[index] = choice;
+  // Hết giờ thì tính sai, dù trình duyệt gửi lên đáp án gì
+  const expired = Date.now() - s.askedAt[index] > QUIZ_SECONDS * 1000 + GRACE_MS;
+  const picked = expired ? -1 : choice;
+  s.answers[index] = picked;
   const answer = s.questions[index].answer;
-  res.json({ correct: choice === answer, answer });
+  res.json({ correct: picked === answer, answer, expired });
 });
 
 // Nộp điểm cuối lượt

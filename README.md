@@ -11,21 +11,25 @@ Game platformer kiểu Mario: nhập tên + MSSV, nhặt xu, đập ô **?** đ�
 | Tạm dừng | `P` |
 | Mỗi đồng xu | **10 điểm** |
 | Ô `?` | **12 ô**, mỗi ô 1 câu hỏi bốc ngẫu nhiên từ ngân hàng **50 câu**; đúng → rơi ra **5 xu** |
+| Mỗi câu hỏi | **20 giây**, hết giờ tính là sai |
 | Chết | bị **trừ nửa số điểm** hiện có, hồi sinh không giới hạn |
 | Thời gian | **10 phút**, đồng hồ vẫn chạy khi đang trả lời câu hỏi |
-| Số lượt | **3 lượt mỗi MSSV** trong một vòng xếp hạng |
+| Số lượt | **2 lượt mỗi MSSV** trong một vòng xếp hạng |
 | Kết thúc | cứu được công chúa hoặc hết giờ |
 
 Bảng xếp hạng giữ **điểm cao nhất của mỗi MSSV**. Cùng điểm thì ai cứu được công chúa xếp trên, rồi đến ai nhanh hơn.
 
 ## Chống gian lận
 
+- **Đề chỉ được phát từng câu** khi người chơi đập ô `?`, kèm hạn 20 giây do server giữ. Mở tab Network cũng chỉ thấy đúng câu đang hiện, không thấy trước 12 câu.
+- **Chặn copy đề**: không bôi đen được, chặn chuột phải, chặn Ctrl+C/X/A/S/P trong hộp câu hỏi. Không chặn được chụp màn hình, nhưng 20 giây thì gần như không kịp tra.
 - **Câu hỏi và đáp án chỉ nằm ở server** ([questions.js](questions.js), không nằm trong thư mục `public/`). Trình duyệt chỉ nhận đề bài và 4 lựa chọn đã xáo trộn, không nhận đáp án. Mở DevTools cũng không thấy đáp án.
-- Mỗi câu **chỉ được trả lời một lần**, server chấm và ghi nhớ. Không thể bấm thử lần lượt 4 đáp án để dò.
+- Mỗi câu **chỉ được trả lời một lần**, server chấm và ghi nhớ. Không thể bấm thử lần lượt 4 đáp án để dò. Mở lại câu đang dở cũng không được gia hạn đồng hồ.
+- Server kiểm tra thời điểm nhận đáp án (dư 2 giây trừ hao mạng). Quá 20 giây thì tính sai dù trình duyệt gửi lên đáp án đúng, nên chỉnh đồng hồ máy không ăn thua.
 - Mỗi lượt chơi bốc **12 trong 50 câu**, nên hai người hiếm khi trùng đề.
-- **3 lượt mỗi MSSV**: lượt được tính ngay khi bắt đầu, kể cả khi thoát giữa chừng. Hết lượt thì server từ chối, muốn mở lại phải xoá bảng xếp hạng.
+- **2 lượt mỗi MSSV**: lượt được tính ngay khi bắt đầu, kể cả khi thoát giữa chừng. Hết lượt thì server từ chối, muốn mở lại phải xoá bảng xếp hạng. Bảng xếp hạng chỉ giữ **1 dòng cho mỗi MSSV**, nên chơi 2 lượt không chiếm chỗ của người khác.
 - Khi nộp điểm, server tự đếm số câu đúng và chặn điểm vượt mức: `xu ≤ 67 + số_câu_đúng × 5` và `điểm ≤ xu × 10`. Mỗi lượt chỉ nộp điểm một lần.
-- Vẫn còn lỗ hổng: người chơi chơi bằng MSSV giả để xem trước câu hỏi rồi chơi lại bằng MSSV thật vẫn có thể trúng vài câu đã gặp. Ba biện pháp trên (đề ngẫu nhiên, 3 lượt, không lộ đáp án trước) chỉ làm giảm chứ không xoá hẳn. Muốn chặn hẳn thì phải phát mã dự phòng riêng cho từng sinh viên — nếu cần, bảo mình làm.
+- Vẫn còn lỗ hổng: người chơi chơi bằng MSSV giả để xem trước câu hỏi rồi chơi lại bằng MSSV thật vẫn có thể trúng vài câu đã gặp. Các biện pháp trên (đề ngẫu nhiên, 2 lượt, 20 giây mỗi câu, không lộ đáp án trước) chỉ làm giảm chứ không xoá hẳn. Muốn chặn hẳn thì phải phát mã dự phòng riêng cho từng sinh viên — nếu cần, bảo mình làm.
 
 Sửa ngân hàng câu hỏi: chỉnh [questions.js](questions.js) (`a` là vị trí đáp án đúng trong mảng `o`). Đổi số lượt chơi: đặt biến môi trường `MAX_ATTEMPTS`.
 
@@ -49,7 +53,7 @@ Cách khác (không dùng Blueprint): **New → Web Service**, Build command `np
 
 ## Bắt đầu bảng xếp hạng mới
 
-Ở màn hình đầu bấm **🗑 Xoá bảng xếp hạng (quản trị)** → nhập `ADMIN_KEY` → toàn bộ điểm và số lượt đã dùng bị xoá, mọi người lại có đủ 3 lượt.
+Ở màn hình đầu bấm **🗑 Xoá bảng xếp hạng (quản trị)** → nhập `ADMIN_KEY` → toàn bộ điểm và số lượt đã dùng bị xoá, mọi người lại có đủ 2 lượt.
 
 ## Lưu ý về gói Free của Render
 

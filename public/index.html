@@ -43,7 +43,8 @@
               <li>💀 Mỗi lần chết bị <b>trừ nửa điểm</b></li>
               <li>⏱ Giới hạn <b>10 phút</b> — đồng hồ vẫn chạy khi trả lời</li>
               <li>👑 Đến lâu đài cứu công chúa để kết thúc sớm</li>
-              <li>🎮 Mỗi MSSV được <b>3 lượt chơi</b>, tính điểm cao nhất</li>
+              <li>⌛ Mỗi câu hỏi chỉ có <b>20 giây</b> để trả lời</li>
+              <li>🎮 Mỗi MSSV được <b>2 lượt chơi</b>, tính điểm cao nhất</li>
             </ul>
           </div>
           <div class="board">
@@ -62,9 +63,10 @@
     <section class="screen hidden" id="quizScreen">
       <div class="panel quiz">
         <div class="quiz-head">
-          <span>❓ CÂU HỎI</span>
+          <span id="quizCount">❓ CÂU HỎI</span>
           <span id="quizTime"></span>
         </div>
+        <div class="qbar"><i id="quizBar"></i></div>
         <p class="qtext" id="quizText"></p>
         <div class="opts" id="quizOpts"></div>
         <p class="quiz-note" id="quizNote"></p>

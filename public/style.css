@@ -285,3 +285,24 @@ kbd {
 dialog { border: none; padding: 0; background: none; max-width: min(460px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(10, 6, 30, .7); }
 .btn.danger { background: var(--red); color: #fff; box-shadow: 0 4px 0 var(--red2), 0 4px 0 3px var(--line); }
+
+/* ---------- đồng hồ câu hỏi + chặn copy ---------- */
+.panel.quiz {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.qbar {
+  height: 10px;
+  margin: 0 0 12px;
+  background: #e0d2b4;
+  border: 2px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.qbar > i {
+  display: block;
+  height: 100%;
+  background: #3ad35a;
+  transition: width .1s linear, background .2s;
+}
+.qbar > i.low { background: var(--red); }
