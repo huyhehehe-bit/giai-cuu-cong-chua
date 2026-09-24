@@ -1150,6 +1150,7 @@
       const d = await api('/api/score', payload);
       attemptsLeft = d.attemptsLeft;
       updateRetryButton();
+      if (d.attemptsLeft <= 0) $('endMsg').textContent += ' Bạn đã dùng hết lượt chơi của vòng này.';
       submitStatus.className = 'submit-status ok';
       submitStatus.textContent = d.improved
         ? `✔ Đã lưu điểm — bạn đang xếp hạng #${d.rank}`
@@ -1269,18 +1270,6 @@
   });
 
   $('btnRetry').addEventListener('click', startGame);
-  $('btnChange').addEventListener('click', () => {
-    endScreen.classList.add('hidden');
-    startScreen.classList.remove('hidden');
-    state = 'menu';
-    endShown = false;
-    session = null;
-    attemptsLeft = null;
-    updateRetryButton();
-    formError.textContent = '';
-    fetchBoard();
-    nameInput.focus();
-  });
 
   // Xoá bảng xếp hạng (cần mật khẩu quản trị)
   const resetDialog = $('resetDialog'), resetKey = $('resetKey'), resetError = $('resetError');
