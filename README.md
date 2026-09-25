@@ -51,6 +51,10 @@ Mở http://localhost:3000. Khi chạy local, mật khẩu xoá bảng xếp h�
 
 Cách khác (không dùng Blueprint): **New → Web Service**, Build command `npm install`, Start command `npm start`, thêm biến môi trường `ADMIN_KEY` và `NODE_ENV=production`.
 
+## Trang bảng xếp hạng riêng
+
+Mở **/bxh** (hoặc /leaderboard), ví dụ https://giai-cuu-cong-chua.onrender.com/bxh — trang toàn màn hình, tự cập nhật 5 giây một lần, có nút **CHỮ TO** cho máy chiếu và nút xoá bảng xếp hạng. Trang này chỉ xem, không chơi được.
+
 ## Bắt đầu bảng xếp hạng mới
 
 Ở màn hình đầu bấm **🗑 Xoá bảng xếp hạng (quản trị)** → nhập `ADMIN_KEY` → toàn bộ điểm và số lượt đã dùng bị xoá, mọi người lại có đủ 2 lượt.

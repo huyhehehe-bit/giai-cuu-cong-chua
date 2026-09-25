@@ -81,6 +81,9 @@ const app = express();
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Trang bảng xếp hạng riêng: /bxh (và /leaderboard)
+app.get(['/bxh', '/leaderboard'], (req, res) => res.sendFile(path.join(__dirname, 'public', 'bxh.html')));
+
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.get('/api/config', (req, res) => {

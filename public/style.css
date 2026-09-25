@@ -306,3 +306,5 @@ dialog::backdrop { background: rgba(10, 6, 30, .7); }
   transition: width .1s linear, background .2s;
 }
 .qbar > i.low { background: var(--red); }
+
+.link-btn { display: block; text-align: left; }

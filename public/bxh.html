@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bảng xếp hạng · Giải Cứu Công Chúa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Press+Start+2P&display=swap">
+<style>
+:root {
+  --bg: #16102b; --bg2: #2a1b52; --panel: #fff7e6; --ink: #2a1600;
+  --muted: #7a6450; --line: #1a0f05; --gold: #ffc629; --gold2: #d68a00;
+  --red: #e52521; --red2: #9c1414;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: radial-gradient(ellipse at top, var(--bg2), var(--bg) 70%);
+  color: #fff;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  padding: 20px 16px 40px;
+}
+.wrap { max-width: 1100px; margin: 0 auto; }
+h1 {
+  font-weight: 800;
+  font-size: clamp(24px, 4vw, 38px);
+  color: var(--gold);
+  text-shadow: 3px 3px 0 var(--red);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.meta { color: #b9addf; font-weight: 600; margin: 0 0 14px; }
+.meta b { color: #fff; }
+
+.bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.btn {
+  font: 800 16px "Baloo 2", sans-serif;
+  padding: 10px 16px;
+  border: 3px solid var(--line);
+  border-radius: 6px;
+  background: #e8dcc4;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--line);
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+.btn.primary { background: var(--gold); }
+.btn.danger { background: var(--red); color: #fff; }
+.spacer { flex: 1; }
+.tick { color: #b9addf; font-weight: 600; }
+
+.card {
+  background: var(--panel);
+  color: var(--ink);
+  border: 4px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 0 var(--line);
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 8px; text-align: left; white-space: nowrap; }
+th {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  color: var(--muted);
+  border-bottom: 3px solid var(--line);
+}
+td { border-bottom: 2px dashed #e0d2b4; font-weight: 600; font-size: 17px; }
+tr:last-child td { border-bottom: none; }
+td.rank { font-family: "Press Start 2P", monospace; font-size: 13px; width: 56px; text-align: center; }
+td.name { white-space: normal; font-weight: 800; }
+td.sid { color: var(--muted); font-family: "Press Start 2P", monospace; font-size: 11px; }
+td.score { font-family: "Press Start 2P", monospace; font-size: 15px; color: var(--gold2); }
+tr.top1 { background: #ffeeb0; }
+tr.top2 { background: #eceff3; }
+tr.top3 { background: #f6e0c8; }
+tr.new td { animation: flash 1.4s ease-out; }
+@keyframes flash { from { background: #b6f0c0; } to { background: transparent; } }
+.empty { text-align: center; color: var(--muted); padding: 30px; font-weight: 600; }
+.err { color: #ff8080; font-weight: 700; }
+
+/* Chế độ trình chiếu: chữ to cho máy chiếu */
+body.big td { font-size: 24px; padding: 14px 10px; }
+body.big td.score { font-size: 20px; }
+body.big td.rank { font-size: 18px; }
+body.big th { font-size: 12px; }
+body.big .hide-big { display: none; }
+
+dialog { border: none; padding: 0; background: none; max-width: min(420px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(10, 6, 30, .7); }
+dialog .card { padding: 20px 22px; }
+dialog h2 { margin: 0 0 6px; font-size: 22px; color: var(--red); }
+dialog p { margin: 0 0 12px; color: var(--muted); font-weight: 500; }
+dialog input {
+  width: 100%; padding: 10px 12px; margin-bottom: 10px;
+  font: 700 16px "Baloo 2", sans-serif;
+  border: 3px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);
+}
+dialog .row { display: flex; gap: 10px; }
+.dlg-err { color: var(--red); font-weight: 700; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏆 BẢNG XẾP HẠNG</h1>
+  <p class="meta" id="meta">Đang tải…</p>
+
+  <div class="bar">
+    <button class="btn primary" id="refresh">↻ LÀM MỚI</button>
+    <button class="btn" id="big">🔍 CHỮ TO</button>
+    <a class="btn" href="/">🎮 VÀO CHƠI</a>
+    <span class="spacer"></span>
+    <span class="tick" id="tick"></span>
+    <button class="btn danger" id="reset">🗑 XOÁ BẢNG</button>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Hạng</th>
+          <th>Người chơi</th>
+          <th>MSSV</th>
+          <th>Điểm</th>
+          <th class="hide-big">Xu</th>
+          <th class="hide-big">Câu đúng</th>
+          <th class="hide-big">Chết</th>
+          <th class="hide-big">Thời gian</th>
+          <th>Kết quả</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="empty hidden" id="empty"></p>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form class="card" id="dlgForm">
+    <h2>Xoá bảng xếp hạng</h2>
+    <p>Toàn bộ điểm và số lượt đã dùng sẽ bị xoá, mọi người có lại đủ lượt chơi. Không thể hoàn tác.</p>
+    <input type="password" id="key" placeholder="Mật khẩu quản trị" autocomplete="current-password" required>
+    <p class="dlg-err" id="dlgErr"></p>
+    <div class="row">
+      <button type="submit" class="btn danger">XOÁ &amp; BẮT ĐẦU VÒNG MỚI</button>
+      <button type="button" class="btn" id="cancel">HUỶ</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const REFRESH = 5;
+let seen = new Set(), first = true, left = REFRESH;
+
+const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+async function load() {
+  let data;
+  try {
+    const res = await fetch('/api/leaderboard', { cache: 'no-store' });
+    if (!res.ok) throw new Error('máy chủ trả về ' + res.status);
+    data = await res.json();
+  } catch (e) {
+    $('meta').innerHTML = '<span class="err">Không kết nối được máy chủ: ' + e.message + '</span>';
+    return;
+  }
+
+  const started = new Date(data.round.startedAt);
+  $('meta').innerHTML = `<b>${data.total}</b> người chơi · vòng bắt đầu lúc <b>${started.toLocaleTimeString('vi-VN')}</b> ngày ${started.toLocaleDateString('vi-VN')} · cập nhật ${new Date().toLocaleTimeString('vi-VN')}`;
+
+  const rows = $('rows');
+  rows.innerHTML = '';
+  $('empty').classList.toggle('hidden', data.entries.length > 0);
+  $('empty').textContent = 'Chưa có ai chơi vòng này.';
+
+  data.entries.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    if (i < 3) tr.className = 'top' + (i + 1);
+    const key = r.sid + ':' + r.score;
+    if (!first && !seen.has(key)) tr.classList.add('new');
+    seen.add(key);
+
+    const cell = (text, cls) => {
+      const td = document.createElement('td');
+      if (cls) td.className = cls;
+      td.textContent = text;
+      return td;
+    };
+    tr.append(
+      cell(['🥇', '🥈', '🥉'][i] || String(i + 1), 'rank'),
+      cell(r.name, 'name'),
+      cell(r.sid, 'sid'),
+      cell(r.score, 'score'),
+      cell(r.coins, 'hide-big'),
+      cell(`${r.correct}/${r.answered}`, 'hide-big'),
+      cell(r.deaths, 'hide-big'),
+      cell(fmtTime(r.timeUsed), 'hide-big'),
+      cell(r.won ? '👑 Đã cứu công chúa' : '⏱ Hết giờ'),
+    );
+    rows.appendChild(tr);
+  });
+  first = false;
+  left = REFRESH;
+}
+
+setInterval(() => {
+  left--;
+  $('tick').textContent = 'tự cập nhật sau ' + Math.max(0, left) + 's';
+  if (left <= 0) load();
+}, 1000);
+
+$('refresh').addEventListener('click', load);
+$('big').addEventListener('click', () => document.body.classList.toggle('big'));
+$('reset').addEventListener('click', () => { $('key').value = ''; $('dlgErr').textContent = ''; $('dlg').showModal(); $('key').focus(); });
+$('cancel').addEventListener('click', () => $('dlg').close());
+$('dlgForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('dlgErr').textContent = '';
+  try {
+    const res = await fetch('/api/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: $('key').value }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || 'Lỗi ' + res.status);
+    $('dlg').close();
+    seen = new Set();
+    first = true;
+    load();
+  } catch (err) {
+    $('dlgErr').textContent = err.message;
+  }
+});
+
+load();
+</script>
+<style>.hidden { display: none; }</style>
+</body>
+</html>
