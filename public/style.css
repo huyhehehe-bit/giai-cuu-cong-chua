@@ -308,3 +308,6 @@ dialog::backdrop { background: rgba(10, 6, 30, .7); }
 .qbar > i.low { background: var(--red); }
 
 .link-btn { display: block; text-align: left; }
+
+.board-link { color: inherit; text-decoration: none; }
+.board-link:hover, .board-link:focus-visible { color: var(--red); text-decoration: underline; }
